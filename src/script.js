@@ -16,16 +16,16 @@ const canvas = document.querySelector('canvas.webgl')
 // Scene
 const scene = new THREE.Scene()
 
-// Axes helper
-const axesHelper = new THREE.AxesHelper()
-scene.add(axesHelper)
-
 /**
  * Textures
  */
 const textureLoader = new THREE.TextureLoader()
-const matcapTexture = textureLoader.load('/textures/matcaps/8.png');
-matcapTexture.colorSpace = THREE.SRGBColorSpace;
+const gradientTexture = textureLoader.load('./textures/gradients/3.jpg');
+
+/**
+ * Meshes
+ */
+const donuts = [];
 
 /**
  * Fonts
@@ -43,23 +43,18 @@ fontLoader.load('/fonts/helvetiker_regular.typeface.json',(font) => {
         bevelOffset: 0,
         bevelSegments: 3
     });
-    // textGeometry.computeBoundingBox();
-    // textGeometry.translate(
-    //     - (textGeometry.boundingBox.max.x - 0.02) * 0.5,
-    //     - (textGeometry.boundingBox.max.y - 0.02)* 0.5,
-    //     - (textGeometry.boundingBox.max.z - 0.02)* 0.5
-    // )
     textGeometry.center()
-    textGeometry.tra
-    const material = new THREE.MeshMatcapMaterial();
-    material.matcap = matcapTexture;
-    // textMaterial.wireframe = true
+    const material = new THREE.MeshToonMaterial();
+    gradientTexture.minFilter = THREE.NearestFilter;
+    gradientTexture.magFilter = THREE.NearestFilter;
+    gradientTexture.generateMipmaps = false;
+    material.gradientMap = gradientTexture;
     const text = new THREE.Mesh(textGeometry, material);
     scene.add(text)
 
     const donutGeometry = new THREE.TorusGeometry(0.3, 0.2, 20, 45);
 
-    for (let i = 0; i < 500; i++) {
+    for (let i = 0; i < 200; i++) {
         const donut = new THREE.Mesh(donutGeometry, material);
 
         donut.position.set((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10)
@@ -69,8 +64,33 @@ fontLoader.load('/fonts/helvetiker_regular.typeface.json',(font) => {
         const scale = Math.random();
         donut.scale.set(scale, scale, scale);
         scene.add(donut);
+        donuts.push(donut);
     }
 })
+
+/**
+ * Lights
+ */
+
+const lightFolder = gui.addFolder('Lights');
+
+const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+scene.add(ambientLight);
+
+lightFolder.addColor(ambientLight, 'color').name('Ambient light color');
+lightFolder.add(ambientLight, 'intensity').min(0).max(3).step(0.01).name('Ambient light intensity');
+
+const pointLight = new THREE.PointLight(0xffffff, 30);
+pointLight.position.x = -3;
+pointLight.position.y = 3;
+pointLight.position.z = 2
+scene.add(pointLight);
+lightFolder.addColor(pointLight, 'color').name('Point light color');
+lightFolder.add(pointLight, 'intensity').min(0).max(100).step(1).name('Point light intensity');
+lightFolder.add(pointLight.position, 'x').min(-10).max(10).step(0.01).name('Point light x');
+lightFolder.add(pointLight.position, 'y').min(-10).max(10).step(0.01).name('Point light y');
+lightFolder.add(pointLight.position, 'z').min(-10).max(10).step(0.01).name('Point light z');
+
 
 /**
  * Sizes
@@ -101,8 +121,8 @@ window.addEventListener('resize', () =>
 // Base camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
 camera.position.x = 1
-camera.position.y = 1
-camera.position.z = 2
+camera.position.y = 0.75
+camera.position.z = 3
 scene.add(camera)
 
 // Controls
@@ -121,11 +141,23 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 /**
  * Animate
  */
-const clock = new THREE.Clock()
 
 const tick = () =>
 {
-    const elapsedTime = clock.getElapsedTime()
+    for (let i = 0; i < donuts.length; i++) {
+        const donut = donuts[i];
+
+        if (donut.position.y > -7.5) {
+            donut.position.y -= 0.01
+        } else {
+            donut.position.y = 5
+        }
+        if (i % 2 == 0) {
+            donut.rotation.x += (0.001) * Math.PI
+        } else {
+            donut.rotation.y += (0.001) * Math.PI
+        }
+    }
 
     // Update controls
     controls.update()
